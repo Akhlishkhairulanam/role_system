@@ -6,6 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Schedule;
+use App\Models\Student;
+use App\Models\Attendance;
+use App\Models\TeacherAllocation;
+
 
 class JadwalSiswaController extends Controller
 {
@@ -44,5 +48,51 @@ class JadwalSiswaController extends Controller
 
         // 4. Return ke View
         return view('siswa.jadwal.index', compact('schedules'));
+    }
+
+    public function absensi()
+    {
+        $user = Auth::user();
+
+        // 1. Ambil data profil Student berdasarkan user_id akun yang sedang login
+        $student = Student::where('user_id', $user->id)->firstOrFail();
+
+        // 2. Tarik seluruh riwayat absensi milik siswa ini dari database beserta informasi mapelnya
+        $attendances = Attendance::with(['teacher_allocation.subject', 'teacher_allocation.teacher'])
+            ->where('student_id', $student->id)
+            ->orderBy('date', 'desc')
+            ->get();
+
+        // 3. Hitung ringkasan total seluruh jenis absensi siswa
+        $rekap = [
+            'H' => $attendances->where('status', 'H')->count(),
+            'S' => $attendances->where('status', 'S')->count(),
+            'I' => $attendances->where('status', 'I')->count(),
+            'A' => $attendances->where('status', 'A')->count(),
+            'total' => $attendances->count()
+        ];
+
+        // 4. Hitung rekapitulasi kehadiran per mata pelajaran yang ada di kelas siswa tersebut
+        $allocations = TeacherAllocation::with('subject')
+            ->where('classroom_id', $student->classroom_id)
+            ->get();
+
+        $rekapMapel = $allocations->map(function ($alloc) use ($attendances) {
+            $absenMapel = $attendances->where('teacher_allocation_id', $alloc->id);
+            $totalPertemuan = $absenMapel->count();
+            $hadir = $absenMapel->where('status', 'H')->count();
+
+            return [
+                'subject' => $alloc->subject,
+                'H' => $hadir,
+                'S' => $absenMapel->where('status', 'S')->count(),
+                'I' => $absenMapel->where('status', 'I')->count(),
+                'A' => $absenMapel->where('status', 'A')->count(),
+                'total' => $totalPertemuan,
+                'persentase' => $totalPertemuan > 0 ? ($hadir / $totalPertemuan) * 100 : 0
+            ];
+        });
+
+        return view('siswa.absensi', compact('student', 'attendances', 'rekap', 'rekapMapel'));
     }
 }

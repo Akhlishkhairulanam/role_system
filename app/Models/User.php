@@ -23,6 +23,7 @@ class User extends Authenticatable
         'username', // Penting buat login NIP/NIS/Username Ortu
         'email',
         'password',
+        'api_token',
         'role',     // admin, teacher, student, parent
         'is_active',
     ];
@@ -35,6 +36,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'api_token',
     ];
 
     /**
@@ -48,6 +50,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean', // Biar jadi true/false di kodingan
+            'api_token' => 'string',
         ];
     }
 

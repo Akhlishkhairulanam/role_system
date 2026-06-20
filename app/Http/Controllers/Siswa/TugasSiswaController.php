@@ -18,22 +18,22 @@ class TugasSiswaController extends Controller
     // 1. DAFTAR TUGAS SISWA
     // ==========================================
     public function index()
-{
-    $user = Auth::user();
-    $student = Student::where('user_id', $user->id)->firstOrFail();
+    {
+        $user = Auth::user();
+        $student = Student::where('user_id', $user->id)->firstOrFail();
 
-    // AMBIL TUGAS DENGAN FILTER KEAMANAN
-    $assignments = Assignment::where('classroom_id', $student->classroom_id)
-        ->whereHas('subject') // <--- KUNCI KEAMANAN: Pastikan subject-nya ada
-        ->whereHas('teacher') // <--- KUNCI KEAMANAN: Pastikan guru-nya ada
-        ->with(['teacher', 'subject'])
-        ->orderBy('deadline', 'asc')
-        ->get();
+        // AMBIL TUGAS DENGAN FILTER KEAMANAN
+        $assignments = Assignment::where('classroom_id', $student->classroom_id)
+            ->whereHas('subject') // <--- KUNCI KEAMANAN: Pastikan subject-nya ada
+            ->whereHas('teacher') // <--- KUNCI KEAMANAN: Pastikan guru-nya ada
+            ->with(['teacher', 'subject'])
+            ->orderBy('deadline', 'asc')
+            ->get();
 
-    $submissions = AssignmentSubmission::where('student_id', $student->id)->get();
+        $submissions = AssignmentSubmission::where('student_id', $student->id)->get();
 
-    return view('siswa.tugas.index', compact('assignments', 'submissions'));
-}
+        return view('siswa.tugas.index', compact('assignments', 'submissions'));
+    }
 
     // ==========================================
     // 2. DETAIL TUGAS & FORM UPLOAD
@@ -53,8 +53,8 @@ class TugasSiswaController extends Controller
 
         // Cek apakah siswa sudah mengumpulkan sebelumnya?
         $submission = AssignmentSubmission::where('assignment_id', $id)
-                        ->where('student_id', $student->id)
-                        ->first();
+            ->where('student_id', $student->id)
+            ->first();
 
         return view('siswa.tugas.show', compact('assignment', 'submission'));
     }
@@ -75,8 +75,8 @@ class TugasSiswaController extends Controller
 
         // Cek submission lama
         $submission = AssignmentSubmission::where('assignment_id', $id)
-                        ->where('student_id', $student->id)
-                        ->first();
+            ->where('student_id', $student->id)
+            ->first();
 
         if ($assignment->type == 'online') {
             // Jika belum ada submission, file wajib diisi. Jika sudah ada, file opsional (boleh tidak ganti).
@@ -122,8 +122,8 @@ class TugasSiswaController extends Controller
         $student = Student::where('user_id', $user->id)->firstOrFail();
 
         $submission = AssignmentSubmission::where('assignment_id', $id)
-                        ->where('student_id', $student->id)
-                        ->firstOrFail();
+            ->where('student_id', $student->id)
+            ->firstOrFail();
 
         // Security: Jangan hapus jika guru sudah memberi nilai
         if ($submission->grade !== null) {
@@ -139,5 +139,45 @@ class TugasSiswaController extends Controller
         $submission->delete();
 
         return redirect()->route('siswa.tugas.index')->with('success', 'Pengumpulan tugas berhasil dibatalkan.');
+    }
+
+    // ==========================================
+    // 5. DOWNLOAD LAMPIRAN GURU
+    // ==========================================
+    public function downloadAttachment($id)
+    {
+        $user = Auth::user();
+        $student = Student::where('user_id', $user->id)->firstOrFail();
+        $assignment = Assignment::findOrFail($id);
+
+        if ($assignment->classroom_id !== $student->classroom_id) {
+            abort(403, 'Anda tidak memiliki akses ke lampiran tugas ini.');
+        }
+
+        if (!$assignment->file_path || !Storage::disk('public')->exists($assignment->file_path)) {
+            abort(404, 'File lampiran tidak ditemukan.');
+        }
+
+        $path = Storage::disk('public')->path($assignment->file_path);
+        return response()->download($path, basename($assignment->file_path));
+    }
+
+    // ==========================================
+    // 6. DOWNLOAD FILE PENGUMPULAN SISWA
+    // ==========================================
+    public function downloadSubmission($submission_id)
+    {
+        $user = Auth::user();
+        $student = Student::where('user_id', $user->id)->firstOrFail();
+        $submission = AssignmentSubmission::where('id', $submission_id)
+            ->where('student_id', $student->id)
+            ->firstOrFail();
+
+        if (!$submission->file_path || !Storage::disk('public')->exists($submission->file_path)) {
+            abort(404, 'File pengumpulan tidak ditemukan.');
+        }
+
+        $path = Storage::disk('public')->path($submission->file_path);
+        return response()->download($path, basename($submission->file_path));
     }
 }

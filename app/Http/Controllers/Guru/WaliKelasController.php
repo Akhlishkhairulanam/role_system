@@ -34,8 +34,8 @@ class WaliKelasController extends Controller
 
         // Ambil daftar siswa
         $students = Student::where('classroom_id', $classroom->id)
-                        ->orderBy('nama_lengkap')
-                        ->get();
+            ->orderBy('nama_lengkap')
+            ->get();
 
         return view('guru.wali-kelas.index', compact('classroom', 'students'));
     }
@@ -50,8 +50,8 @@ class WaliKelasController extends Controller
 
         // Security Check: Pastikan dia beneran Wali Kelas dari kelas ini
         $classroom = Classroom::where('id', $classroom_id)
-                        ->where('wali_kelas_id', $teacher->id)
-                        ->first();
+            ->where('wali_kelas_id', $teacher->id)
+            ->first();
 
         if (!$classroom) {
             return back()->with('error', 'Anda bukan Wali Kelas dari kelas ini.');
@@ -83,13 +83,13 @@ class WaliKelasController extends Controller
 
         // B. Ambil Mapel (Termasuk PJOK/Mengaji dari tabel subjects)
         $allocations = TeacherAllocation::with(['subject', 'teacher.user'])
-                        ->where('classroom_id', $student->classroom_id)
-                        ->get();
+            ->where('classroom_id', $student->classroom_id)
+            ->get();
 
         // C. Ambil Nilai
         $rawGrades = Grade::where('student_id', $student->id)->get();
         $grades = [];
-        foreach($rawGrades as $g) {
+        foreach ($rawGrades as $g) {
             $grades[$g->teacher_allocation_id][strtolower($g->type)] = $g->score;
         }
 
@@ -101,7 +101,44 @@ class WaliKelasController extends Controller
             ['nama' => 'Pramuka', 'predikat' => 'B', 'keterangan' => 'Aktif']
         ];
 
-        // F. Panggil View Rapor yang ada di folder ADMIN
-        return view('admin.student.rapor', compact('student', 'allocations', 'grades', 'absensi', 'ekskul'));
+        // F. Panggil View Rapor khusus guru
+        return view('guru.rapor.show', compact('student', 'allocations', 'grades', 'absensi', 'ekskul'));
+    }
+
+    /**
+     * 4. REKAP ABSENSI TERPADU (SINKRONISASI SEMUA MAPEL)
+     */
+    public function rekapAbsensi()
+    {
+        $user = Auth::user();
+        $teacher = Teacher::where('user_id', $user->id)->firstOrFail();
+
+        // Cari Kelas dimana guru ini menjabat sebagai Wali Kelas
+        $classroom = Classroom::where('wali_kelas_id', $teacher->id)->first();
+
+        if (!$classroom) {
+            return back()->with('error', 'Akses ditolak. Fitur ini hanya untuk Wali Kelas.');
+        }
+
+        // Tarik data siswa beserta semua absensinya
+        $students = Student::with('attendances')
+            ->where('classroom_id', $classroom->id)
+            ->orderBy('nama_lengkap', 'asc')
+            ->get();
+
+        // Olah data untuk dihitung
+        $rekapData = $students->map(function ($student) {
+            $attendances = $student->attendances;
+            return [
+                'student'         => $student,
+                'H'               => $attendances->where('status', 'H')->count(),
+                'S'               => $attendances->where('status', 'S')->count(),
+                'I'               => $attendances->where('status', 'I')->count(),
+                'A'               => $attendances->where('status', 'A')->count(),
+                'total_pertemuan' => $attendances->count(),
+            ];
+        });
+
+        return view('guru.wali-kelas.rekap_absensi', compact('classroom', 'rekapData'));
     }
 }

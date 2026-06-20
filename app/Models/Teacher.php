@@ -67,4 +67,11 @@ class Teacher extends Model
     {
         return $this->hasOne(Classroom::class, 'guru_olahraga_id');
     }
+public function teacherAllocations()
+{
+    return $this->hasMany(
+        TeacherAllocation::class,
+        'teacher_id'
+    );
+}
 }

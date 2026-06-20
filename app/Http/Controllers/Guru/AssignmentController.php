@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage; // <--- WAJIB ADA agar tidak error 'Undefined type'
+use Illuminate\Support\Str;
 
 // Import Models
 use App\Models\Assignment;
@@ -55,8 +56,8 @@ class AssignmentController extends Controller
         if ($user->role == 'teacher') {
             $teacher = Teacher::where('user_id', $user->id)->first();
             $allocations = TeacherAllocation::with(['classroom', 'subject'])
-                            ->where('teacher_id', $teacher->id)
-                            ->get();
+                ->where('teacher_id', $teacher->id)
+                ->get();
 
             if ($allocations->isEmpty()) {
                 return redirect()->route('guru.tugas.index')->with('error', 'Belum ada jadwal mengajar.');
@@ -134,6 +135,16 @@ class AssignmentController extends Controller
 
         $submission = AssignmentSubmission::findOrFail($submission_id);
 
+        $assignment = $submission->assignment;
+        $user = Auth::user();
+
+        if ($user->role === 'teacher') {
+            $teacher = Teacher::where('user_id', $user->id)->first();
+            if (!$teacher || $assignment->teacher_id !== $teacher->id) {
+                abort(403, 'Anda tidak berwenang memberi nilai untuk tugas ini.');
+            }
+        }
+
         $submission->update([
             'grade' => $request->grade,
             'feedback' => $request->feedback
@@ -143,7 +154,41 @@ class AssignmentController extends Controller
     }
 
     // ==========================================
-    // 6. DELETE TUGAS
+    // 6. DOWNLOAD FILE PENGUMPULAN SISWA
+    // ==========================================
+    public function downloadSubmission($submission_id)
+    {
+        $submission = AssignmentSubmission::with('assignment')->findOrFail($submission_id);
+        $user = Auth::user();
+
+        if ($user->role === 'teacher') {
+            $teacher = Teacher::where('user_id', $user->id)->first();
+            if (!$teacher || $submission->assignment->teacher_id !== $teacher->id) {
+                abort(403, 'Anda tidak memiliki akses untuk mengunduh file ini.');
+            }
+        } else {
+            abort(403, 'Akses terbatas hanya untuk guru.');
+        }
+
+        if (!$submission->file_path || !Storage::disk('public')->exists($submission->file_path)) {
+            abort(404, 'File pengumpulan siswa tidak ditemukan.');
+        }
+
+        $student = $submission->student;
+        $filename = sprintf(
+            '%s_%s_%s.%s',
+            'submission',
+            Str::slug($student->nama_lengkap ?? 'siswa', '_'),
+            Str::slug($submission->assignment->title ?? 'tugas', '_'),
+            pathinfo($submission->file_path, PATHINFO_EXTENSION)
+        );
+
+        $path = Storage::disk('public')->path($submission->file_path);
+        return response()->download($path, $filename);
+    }
+
+    // ==========================================
+    // 7. DELETE TUGAS
     // ==========================================
     public function destroy($id)
     {
@@ -173,8 +218,8 @@ class AssignmentController extends Controller
             }
 
             $allocations = TeacherAllocation::with(['classroom', 'subject'])
-                            ->where('teacher_id', $teacher->id)
-                            ->get();
+                ->where('teacher_id', $teacher->id)
+                ->get();
         } else {
             $allocations = TeacherAllocation::with(['classroom', 'subject', 'teacher'])->get();
         }

@@ -50,7 +50,7 @@ Route::middleware('guest')->group(function () {
     Route::post('/ortu/login', [AuthOrtuController::class, 'login'])->name('ortu.authenticate');
 });
 
-require __DIR__.'/auth.php'; // Breeze Login (Admin/Guru)
+require __DIR__ . '/auth.php'; // Breeze Login (Admin/Guru)
 
 // ====================================================
 // 2. SHARED AUTH ROUTES (DASHBOARD & PROFIL)
@@ -118,7 +118,7 @@ Route::middleware(['auth'])->prefix('guru')->name('guru.data.')->group(function 
     Route::get('/siswa/kelas/{class_id}', [DataMasterController::class, 'showStudentsByClass'])->name('students.show_class');
 
     // Admin Full Access (CRUD)
-    Route::middleware('role:admin')->group(function() {
+    Route::middleware('role:admin')->group(function () {
         // Mapel
         Route::post('/mapel', [DataMasterController::class, 'storeSubject'])->name('subjects.store');
         Route::put('/mapel/{id}', [DataMasterController::class, 'updateSubject'])->name('subjects.update');
@@ -162,9 +162,10 @@ Route::middleware(['auth'])->prefix('guru')->name('guru.data.')->group(function 
 Route::middleware(['auth', 'role:teacher'])->prefix('guru')->name('guru.')->group(function () {
     Route::get('/jadwal-saya', [JadwalGuruController::class, 'index'])->name('jadwal.index');
     Route::resource('tugas', AssignmentController::class);
+    Route::get('/tugas/submission/{submission_id}/download', [AssignmentController::class, 'downloadSubmission'])->name('tugas.download_submission');
     Route::post('/tugas/submission/{submission_id}/grade', [AssignmentController::class, 'updateGrade'])->name('tugas.grade');
 
-    Route::prefix('absensi')->name('absensi.')->controller(AbsensiController::class)->group(function() {
+    Route::prefix('absensi')->name('absensi.')->controller(AbsensiController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/kelas/{classroom_id}', 'showMapel')->name('mapel');
         Route::get('/jurnal/{allocation_id}', 'jurnal')->name('jurnal');
@@ -174,16 +175,19 @@ Route::middleware(['auth', 'role:teacher'])->prefix('guru')->name('guru.')->grou
         Route::get('/rekap/{allocation_id}', 'rekap')->name('rekap');
     });
 
-    Route::prefix('nilai')->name('nilai.')->controller(NilaiController::class)->group(function() {
+    Route::prefix('nilai')->name('nilai.')->controller(NilaiController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/input/{allocation_id}', 'create')->name('create');
         Route::post('/store/{allocation_id}', 'store')->name('store');
     });
 
-    Route::controller(WaliKelasController::class)->group(function() {
+    Route::controller(WaliKelasController::class)->group(function () {
         Route::get('/monitoring-kelas', 'index')->name('wali-kelas.index');
         Route::post('/rapor/toggle/{classroom_id}', 'toggleRapor')->name('rapor.toggle');
         Route::get('/rapor/show/{student_id}', 'show')->name('rapor.show');
+
+        // Tambahan route baru:
+        Route::get('/rekap-absensi-kelas', 'rekapAbsensi')->name('wali-kelas.absensi');
     });
 });
 
@@ -193,10 +197,13 @@ Route::middleware(['auth', 'role:teacher'])->prefix('guru')->name('guru.')->grou
 Route::middleware(['auth', 'role:student'])->prefix('siswa')->name('siswa.')->group(function () {
     Route::get('/jadwal', [JadwalSiswaController::class, 'index'])->name('jadwal');
     Route::get('/rapor', [RaporController::class, 'index'])->name('rapor');
-
+    Route::get('/rapor/print', [RaporController::class, 'print'])->name('rapor.print');
+    Route::get('/absensi', [JadwalSiswaController::class, 'absensi'])->name('absensi');
     // TUGAS ROUTES
     Route::get('/tugas', [TugasSiswaController::class, 'index'])->name('tugas.index');
     Route::get('/tugas/{id}', [TugasSiswaController::class, 'show'])->name('tugas.show');
+    Route::get('/tugas/{id}/lampiran/download', [TugasSiswaController::class, 'downloadAttachment'])->name('tugas.download_attachment');
+    Route::get('/tugas/submission/{submission_id}/download', [TugasSiswaController::class, 'downloadSubmission'])->name('tugas.download_submission');
 
     // GUNAKAN POST MANUAL UNTUK SUBMIT AGAR ID TERBACA
     Route::post('/tugas/{id}/submit', [TugasSiswaController::class, 'store'])->name('tugas.submit');
@@ -214,7 +221,7 @@ Route::middleware(['auth', 'role:parent'])->prefix('ortu')->name('ortu.')->group
     Route::get('/perkembangan', [PerkembanganController::class, 'index'])->name('perkembangan.index');
 
     // Grouping SPP Ortu
-    Route::controller(SppOrtuController::class)->group(function() {
+    Route::controller(SppOrtuController::class)->group(function () {
         Route::get('/tagihan', 'index')->name('tagihan.index');
         Route::post('/tagihan/{id}/pay', 'uploadBukti')->name('tagihan.pay');
         Route::post('/spp/dispensasi/{id}', 'storeDispensation')->name('tagihan.dispensasi');
