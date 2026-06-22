@@ -21,9 +21,9 @@ class SppController extends Controller
 
         $query = SppPayment::query();
         $query->select('spp_payments.*')
-              ->join('students', 'students.id', '=', 'spp_payments.student_id')
-              ->orderBy('students.nama_lengkap', 'asc')
-              ->with(['student.classroom']);
+            ->join('students', 'students.id', '=', 'spp_payments.student_id')
+            ->orderBy('students.nama_lengkap', 'asc')
+            ->with(['student.classroom']);
 
         // --- FILTER ---
         if ($request->filled('classroom_id')) {
@@ -76,9 +76,9 @@ class SppController extends Controller
     public function verification()
     {
         $pendingPayments = SppPayment::where('status', 'pending')
-                            ->with(['student.classroom'])
-                            ->orderBy('updated_at', 'asc')
-                            ->get();
+            ->with(['student.classroom'])
+            ->orderBy('updated_at', 'asc')
+            ->get();
 
         return view('admin.spp.verification', compact('pendingPayments'));
     }
@@ -125,14 +125,14 @@ class SppController extends Controller
                     'month' => $request->month,
                     'year' => $request->year,
                     'status' => 'unpaid',
-                    'is_published' => false,
+                    // UBAH DARI false MENJADI true AGAR LANGSUNG MUNCUL DI ORTU
+                    'is_published' => true,
                 ]);
                 $count++;
             }
             DB::commit();
 
             return back()->with('success', "Berhasil membuat {$count} draft tagihan untuk seluruh siswa.");
-
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Error: ' . $e->getMessage());
@@ -145,9 +145,9 @@ class SppController extends Controller
     public function getStudentsByClass($classroom_id)
     {
         $students = Student::where('classroom_id', $classroom_id)
-                            ->orderBy('nama_lengkap')
-                            ->select('id', 'nama_lengkap')
-                            ->get();
+            ->orderBy('nama_lengkap')
+            ->select('id', 'nama_lengkap')
+            ->get();
         return response()->json($students);
     }
 
@@ -176,7 +176,8 @@ class SppController extends Controller
             'month' => $request->month,
             'year' => $request->year,
             'status' => 'unpaid',
-            'is_published' => false, // Default Draft
+            // UBAH DARI false MENJADI true AGAR LANGSUNG MUNCUL DI ORTU
+            'is_published' => true,
         ]);
 
         return back()->with('success', 'Berhasil membuat 1 draft tagihan spesifik.');
@@ -356,4 +357,3 @@ class SppController extends Controller
         return back()->with('warning', 'Pengajuan dispensasi DITOLAK.');
     }
 }
-

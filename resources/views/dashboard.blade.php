@@ -245,29 +245,56 @@
                             </div>
                             <div class="card-body p-4">
                                 @if (isset($jadwal_hari_ini) && count($jadwal_hari_ini) > 0)
-                                    <div class="timeline mt-2">
+                                    <div class="mt-3">
                                         @foreach ($jadwal_hari_ini as $item)
                                             <div
-                                                class="timeline-item pb-4 ps-4 border-start border-2 border-light position-relative">
-                                                <div class="position-absolute top-0 start-0 translate-middle rounded-circle bg-white border-4 border-primary shadow-sm"
-                                                    style="width: 18px; height: 18px; border-style: solid;"></div>
-                                                <div
-                                                    class="card border-0 bg-light rounded-3 p-3 ms-2 hover-bg-white transition-all shadow-sm-hover">
-                                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                                        <span
-                                                            class="badge bg-primary rounded-pill px-3 shadow-sm">{{ substr($item->start_time, 0, 5) }}
-                                                            - {{ substr($item->end_time, 0, 5) }}</span>
-                                                        <span class="text-muted small fw-bold"><i
-                                                                class="fas fa-door-open me-1"></i> Kelas
-                                                            {{ optional($item->teacher_allocation->classroom)->nama_kelas }}</span>
+                                                class="card border-0 rounded-4 shadow-sm mb-3 hover-up overflow-hidden bg-light bg-opacity-50">
+                                                {{-- PERBAIKAN: Gunakan d-flex flex-md-row agar tidak turun baris --}}
+                                                <div class="d-flex flex-column flex-md-row align-items-md-center h-100">
+
+                                                    {{-- Strip Warna Aksen Kiri (Hanya tampil di Desktop) --}}
+                                                    <div class="bg-primary d-none d-md-block"
+                                                        style="width: 6px; align-self: stretch; min-height: 85px; flex-shrink: 0;">
                                                     </div>
-                                                    <h6 class="fw-bold text-dark mb-1">
-                                                        {{ optional($item->teacher_allocation->subject)->nama_mapel }}
-                                                    </h6>
-                                                    <div class="d-flex justify-content-between align-items-end mt-3">
+
+                                                    {{-- Area Jam Pelajaran --}}
+                                                    <div class="px-4 py-3 text-center border-end border-light d-flex flex-row flex-md-column justify-content-center align-items-center gap-2 gap-md-0"
+                                                        style="min-width: 130px; flex-shrink: 0;">
+                                                        <h5 class="fw-bold text-primary mb-0"
+                                                            style="font-family: monospace; font-size: 1.15rem;">
+                                                            {{ \Carbon\Carbon::parse($item->start_time)->format('H:i') }}
+                                                        </h5>
+                                                        <small class="text-muted fw-bold" style="font-size: 11px;">
+                                                            s/d
+                                                            {{ \Carbon\Carbon::parse($item->end_time)->format('H:i') }}
+                                                        </small>
+                                                    </div>
+
+                                                    {{-- Area Info Mapel & Kelas (KUNCI PERBAIKAN: flex-grow-1 dan min-width: 0) --}}
+                                                    <div class="px-4 py-3 flex-grow-1" style="min-width: 0;">
+                                                        <h6 class="fw-bold text-dark mb-2 text-truncate"
+                                                            title="{{ optional($item->teacher_allocation->subject)->nama_mapel }}">
+                                                            {{ optional($item->teacher_allocation->subject)->nama_mapel }}
+                                                        </h6>
+                                                        <div class="d-flex flex-wrap align-items-center gap-2">
+                                                            <span
+                                                                class="badge bg-white text-dark border shadow-sm py-1 px-2"
+                                                                style="font-size: 0.75rem;">
+                                                                <i class="fas fa-door-open text-primary me-1"></i>
+                                                                Kelas
+                                                                {{ optional($item->teacher_allocation->classroom)->nama_kelas }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {{-- Area Tombol Aksi (flex-shrink: 0 agar ukuran tombol tidak tergencet) --}}
+                                                    <div class="px-4 py-3 pb-4 pb-md-3 mt-auto mt-md-0 text-start text-md-end"
+                                                        style="flex-shrink: 0;">
                                                         <a href="{{ route('guru.absensi.input', $item->teacher_allocation->id ?? $item->id) }}"
-                                                            class="btn btn-sm btn-primary rounded-pill px-4 shadow-sm fw-bold"><i
-                                                                class="fas fa-edit me-1"></i> Absen</a>
+                                                            class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold text-nowrap w-100"
+                                                            style="font-size: 13px;">
+                                                            <i class="fas fa-user-check me-1"></i> Isi Absen
+                                                        </a>
                                                     </div>
                                                 </div>
                                             </div>
@@ -321,10 +348,9 @@
                     </div>
                 </div>
 
-                {{-- >>> PARENT (ORTU) VIEW - PERBAIKAN: HAPUS MENU GANDA, FOKUS PERKEMBANGAN <<< --}}
+                {{-- >>> PARENT (ORTU) VIEW <<< --}}
             @elseif($role === 'parent')
                 <div class="row g-4">
-                    {{-- 1. Profil Anak (KIRI) --}}
                     <div class="col-lg-4">
                         <div class="card border-0 rounded-4 shadow-sm h-100 bg-white">
                             <div class="card-body p-4 text-center">
@@ -337,7 +363,6 @@
                                     <p class="text-muted mb-3">{{ $anak->nisn }} | Kelas
                                         {{ $anak->classroom->nama_kelas ?? '-' }}</p>
                                     <div class="d-grid gap-2">
-                                        {{-- TOMBOL LIHAT PERKEMBANGAN (FOKUS UTAMA) --}}
                                         <a href="{{ route('ortu.perkembangan.index') }}"
                                             class="btn btn-primary rounded-pill btn-sm">
                                             <i class="fas fa-chart-line me-1"></i> Statistik & Perkembangan
@@ -350,9 +375,7 @@
                         </div>
                     </div>
 
-                    {{-- 2. Menu Cepat + Tagihan SPP (KANAN) --}}
                     <div class="col-lg-8">
-                        {{-- A. LINK BESAR KE PERKEMBANGAN ANAK (GANTI MENU GANDA TADI) --}}
                         <div class="row mb-4">
                             <div class="col-12">
                                 <a href="{{ route('ortu.perkembangan.index') }}" class="text-decoration-none">
@@ -368,15 +391,13 @@
                                                     Kelas secara lengkap.</p>
                                             </div>
                                         </div>
-                                        <div class="bg-light rounded-circle p-2 text-muted">
-                                            <i class="fas fa-chevron-right"></i>
-                                        </div>
+                                        <div class="bg-light rounded-circle p-2 text-muted"><i
+                                                class="fas fa-chevron-right"></i></div>
                                     </div>
                                 </a>
                             </div>
                         </div>
 
-                        {{-- B. Daftar Tagihan SPP (HANYA YANG BELUM LUNAS) --}}
                         <div class="card border-0 rounded-4 shadow-sm bg-white overflow-hidden">
                             <div
                                 class="card-header bg-white border-0 pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
@@ -398,7 +419,6 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {{-- FILTER HANYA UNPAID DI VIEW --}}
                                             @php
                                                 $unpaidBills = isset($tagihan_spp)
                                                     ? $tagihan_spp
@@ -468,34 +488,59 @@
                                         @foreach ($jadwal_hari_ini as $item)
                                             <div class="col-md-6">
                                                 <div
-                                                    class="card border-0 bg-light rounded-4 h-100 hover-up transition-all shadow-sm">
-                                                    <div class="card-body p-3">
-                                                        <div class="d-flex justify-content-between mb-2">
-                                                            <span
-                                                                class="badge bg-white text-dark shadow-sm border border-light">{{ substr($item->start_time, 0, 5) }}</span>
-                                                            <span
-                                                                class="badge bg-primary">{{ optional($item->teacher_allocation->subject)->code ?? 'MAPEL' }}</span>
-                                                        </div>
-                                                        <h6 class="fw-bold text-dark mb-1 text-truncate">
-                                                            {{ optional($item->teacher_allocation->subject)->nama_mapel }}
-                                                        </h6>
-                                                        <div
-                                                            class="d-flex align-items-center mt-3 pt-2 border-top border-white">
-                                                            <div class="bg-primary bg-opacity-10 rounded-circle text-primary d-flex align-items-center justify-content-center me-2"
-                                                                style="width: 28px; height: 28px;"><i
-                                                                    class="fas fa-user-tie"
-                                                                    style="font-size: 12px;"></i></div>
-                                                            <small class="text-muted fw-bold text-truncate"
-                                                                style="font-size: 12px;">{{ optional($item->teacher_allocation->teacher)->nama_lengkap }}</small>
-                                                        </div>
+                                                    class="card border-0 bg-light rounded-4 h-100 hover-up transition-all shadow-sm p-3">
+
+                                                    {{-- Area Atas: Jam dan Kode Mapel yang RAPI --}}
+                                                    <div
+                                                        class="d-flex justify-content-between align-items-center mb-3">
+                                                        <span
+                                                            class="badge bg-white text-dark shadow-sm border border-light py-2 px-3">
+                                                            <i class="far fa-clock me-1 text-primary"></i>
+                                                            {{ \Carbon\Carbon::parse($item->start_time)->format('H:i') }}
+                                                            -
+                                                            {{ \Carbon\Carbon::parse($item->end_time)->format('H:i') }}
+                                                        </span>
+
+                                                        <span class="badge bg-primary shadow-sm py-2 px-3">
+                                                            {{ optional($item->teacher_allocation->subject)->code ?? 'MAPEL' }}
+                                                        </span>
                                                     </div>
+
+                                                    {{-- Area Tengah: Nama Mapel Penuh --}}
+                                                    <h6 class="fw-bold text-dark mb-2 text-truncate"
+                                                        title="{{ optional($item->teacher_allocation->subject)->nama_mapel }}">
+                                                        {{ optional($item->teacher_allocation->subject)->nama_mapel }}
+                                                    </h6>
+
+                                                    {{-- Area Bawah: Nama Guru --}}
+                                                    <div
+                                                        class="d-flex align-items-center mt-auto pt-3 border-top border-white">
+                                                        <div class="bg-primary bg-opacity-10 rounded-circle text-primary d-flex align-items-center justify-content-center me-2"
+                                                            style="width: 32px; height: 32px;">
+                                                            <i class="fas fa-user-tie" style="font-size: 14px;"></i>
+                                                        </div>
+                                                        @php
+                                                            $guru = $item->teacher_allocation->teacher ?? null;
+                                                            $namaGuru = 'Guru Belum Diset';
+                                                            if ($guru) {
+                                                                $namaGuru =
+                                                                    $guru->user->name ??
+                                                                    ($guru->nama_lengkap ?? ($guru->name ?? $namaGuru));
+                                                            }
+                                                        @endphp
+                                                        <small class="text-muted fw-bold text-truncate"
+                                                            style="font-size: 13px;">
+                                                            {{ $namaGuru }}
+                                                        </small>
+                                                    </div>
+
                                                 </div>
                                             </div>
                                         @endforeach
                                     </div>
                                 @else
-                                    <div class="text-center py-5"><i
-                                            class="fas fa-smile-beam fa-4x text-warning opacity-50 mb-3"></i>
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-smile-beam fa-4x text-warning opacity-50 mb-3"></i>
                                         <h6 class="fw-bold text-dark">Libur / Bebas Kelas!</h6>
                                         <p class="text-muted small">Tidak ada jadwal pelajaran untuk hari ini.</p>
                                     </div>
@@ -503,6 +548,7 @@
                             </div>
                         </div>
                     </div>
+
                     <div class="col-lg-4">
                         <div class="row g-3">
                             <div class="col-12">

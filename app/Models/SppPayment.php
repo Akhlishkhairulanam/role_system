@@ -35,6 +35,7 @@ class SppPayment extends Model
         // Agar tanggal janji otomatis jadi object Carbon (bisa diformat)
         'dispensation_date' => 'date',
         'due_date' => 'date',
+        'is_published' => 'boolean',
     ];
 
     /**

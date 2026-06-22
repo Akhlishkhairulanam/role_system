@@ -27,10 +27,10 @@ class SppOrtuController extends Controller
 
         // 2. Ambil Tagihan SPP (Published & Urut Terbaru)
         $tagihan_spp = SppPayment::where('student_id', $anak->id)
-                                ->where('is_published', true)
-                                ->orderBy('year', 'desc')
-                                ->orderBy('id', 'desc')
-                                ->get();
+            ->where('is_published', 1) // UBAH TRUE JADI 1 DI SINI
+            ->orderBy('year', 'desc')
+            ->orderBy('id', 'desc')
+            ->get();
 
         return view('ortu.spp.index', compact('anak', 'tagihan_spp'));
     }
@@ -49,8 +49,8 @@ class SppOrtuController extends Controller
 
         // Security Check
         $isMyChild = Student::where('parent_user_id', $user->id)
-                            ->where('id', $payment->student_id)
-                            ->exists();
+            ->where('id', $payment->student_id)
+            ->exists();
 
         if (!$isMyChild) {
             return back()->with('error', 'Akses ditolak. Ini bukan tagihan anak Anda.');
@@ -93,8 +93,8 @@ class SppOrtuController extends Controller
 
         // Security Check
         $isMyChild = Student::where('parent_user_id', $user->id)
-                            ->where('id', $payment->student_id)
-                            ->exists();
+            ->where('id', $payment->student_id)
+            ->exists();
 
         if (!$isMyChild) {
             return back()->with('error', 'Unauthorized Action.');

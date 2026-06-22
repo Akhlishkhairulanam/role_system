@@ -15,8 +15,8 @@ class Schedule extends Model
 
     // Cast agar start_time & end_time otomatis jadi objek Carbon (mudah diformat)
     protected $casts = [
-        'start_time' => 'datetime', // atau 'string' jika ingin mentah
-        'end_time'   => 'datetime',
+        'start_time' => 'datetime:H:i', // Format standar untuk waktu
+        'end_time'   => 'datetime:H:i',
     ];
 
     // ==========================================

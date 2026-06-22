@@ -219,6 +219,8 @@ Route::middleware(['auth', 'role:parent'])->prefix('ortu')->name('ortu.')->group
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/logout', [AuthOrtuController::class, 'logout'])->name('logout');
     Route::get('/perkembangan', [PerkembanganController::class, 'index'])->name('perkembangan.index');
+    Route::get('/rapor', [PerkembanganController::class, 'rapor'])->name('rapor');
+    Route::get('/nilai', [PerkembanganController::class, 'semuaNilai'])->name('nilai');
 
     // Grouping SPP Ortu
     Route::controller(SppOrtuController::class)->group(function () {
