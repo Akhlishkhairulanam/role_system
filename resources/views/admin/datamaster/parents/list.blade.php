@@ -8,7 +8,8 @@
     <div class="container-fluid px-4 mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <a href="{{ route('guru.data.parents.index') }}" class="btn btn-link text-secondary p-0 mb-2 text-decoration-none">
+                <a href="{{ route('guru.data.parents.index') }}"
+                    class="btn btn-link text-secondary p-0 mb-2 text-decoration-none">
                     <i class="fas fa-arrow-left me-2"></i> Kembali ke Daftar Kelas
                 </a>
                 <h1 class="h3 text-gray-800 font-weight-bold">
@@ -17,10 +18,21 @@
                 <p class="text-muted small mb-0">Daftar akun orang tua yang memiliki anak di kelas ini.</p>
             </div>
 
-            {{-- Shortcut ke Data Siswa (Solusi biar ga bingung nambah link) --}}
-            <a href="{{ route('guru.data.students.show_class', $classroom->id) }}" class="btn btn-outline-primary rounded-pill px-4">
-                <i class="fas fa-link me-2"></i> Tautkan Ortu Baru (via Data Siswa)
-            </a>
+            {{-- Kotak Pencarian & Shortcut ke Data Siswa --}}
+            <div class="d-flex gap-3 align-items-center">
+                <div class="input-group shadow-sm">
+                    <span class="input-group-text bg-white border-end-0 ps-3">
+                        <i class="fas fa-search text-muted"></i>
+                    </span>
+                    <input type="text" id="searchInClass" class="form-control border-start-0 ps-2"
+                        placeholder="Cari nama, username..." style="width: 250px;">
+                </div>
+
+                <a href="{{ route('guru.data.students.show_class', $classroom->id) }}"
+                    class="btn btn-outline-primary rounded-pill px-4 text-nowrap">
+                    <i class="fas fa-link me-2"></i> Tautkan Ortu Baru
+                </a>
+            </div>
         </div>
 
         <div class="card border-0 shadow-sm rounded-lg overflow-hidden">
@@ -36,62 +48,78 @@
                                 <th class="text-end px-4 py-3">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="parentTableBody">
                             @forelse($parents as $index => $p)
-                            <tr>
-                                <td class="px-4 text-center text-muted">{{ $index + 1 }}</td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar-circle bg-warning bg-opacity-10 text-warning me-3 d-flex align-items-center justify-content-center rounded-circle fw-bold" style="width: 40px; height: 40px;">
-                                            {{ substr($p->name, 0, 1) }}
+                                <tr class="parent-row">
+                                    {{-- 1. Kolom Nomor --}}
+                                    <td class="px-4 text-center text-muted">{{ $index + 1 }}</td>
+
+                                    {{-- 2. Kolom Nama Orang Tua --}}
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-circle bg-warning bg-opacity-10 text-warning me-3 d-flex align-items-center justify-content-center rounded-circle fw-bold"
+                                                style="width: 40px; height: 40px;">
+                                                {{ substr($p->name, 0, 1) }}
+                                            </div>
+                                            <span class="fw-bold text-dark">{{ $p->name }}</span>
                                         </div>
-                                        <span class="fw-bold text-dark">{{ $p->name }}</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="small fw-bold text-dark"><i class="fas fa-user me-1 text-muted"></i> {{ $p->username }}</div>
-                                    <div class="small text-muted"><i class="fas fa-envelope me-1"></i> {{ $p->email }}</div>
-                                </td>
-                                <td>
-                                    {{-- Loop Anak --}}
-                                    <div class="d-flex flex-wrap gap-1">
-                                        @foreach($p->students as $child)
-                                            <span class="badge {{ $child->classroom_id == $classroom->id ? 'bg-primary' : 'bg-secondary' }} bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill fw-normal">
-                                                {{ $child->nama_lengkap }}
-                                                @if($child->classroom_id != $classroom->id)
-                                                    <span class="text-muted ms-1">({{ $child->classroom->nama_kelas }})</span>
-                                                @endif
-                                            </span>
-                                        @endforeach
-                                    </div>
-                                </td>
-                                <td class="text-end px-4">
-                                    {{-- TOMBOL EDIT --}}
-                                    <button class="btn btn-sm btn-light text-warning border-0 rounded-circle me-1"
+                                    </td>
+
+                                    {{-- 3. Kolom Akun Login --}}
+                                    <td>
+                                        <div class="small fw-bold text-dark"><i class="fas fa-user me-1 text-muted"></i>
+                                            {{ $p->username }}</div>
+                                        <div class="small text-muted"><i class="fas fa-envelope me-1"></i> {{ $p->email }}
+                                        </div>
+                                    </td>
+
+                                    {{-- 4. Kolom Anak --}}
+                                    <td>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            @foreach($p->students as $child)
+                                                <span
+                                                    class="badge {{ $child->classroom_id == $classroom->id ? 'bg-primary' : 'bg-secondary' }} bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill fw-normal">
+                                                    {{ $child->nama_lengkap }}
+                                                    @if($child->classroom_id != $classroom->id)
+                                                        <span class="text-muted ms-1">({{ $child->classroom->nama_kelas }})</span>
+                                                    @endif
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    </td>
+
+                                    {{-- 5. Kolom Aksi --}}
+                                    <td class="text-end px-4">
+                                        {{-- TOMBOL EDIT --}}
+                                        <button class="btn btn-sm btn-light text-warning border-0 rounded-circle me-1"
                                             onclick='openEditModal(@json($p))' title="Edit Akun">
-                                        <i class="fas fa-pencil-alt"></i>
-                                    </button>
+                                            <i class="fas fa-pencil-alt"></i>
+                                        </button>
 
-                                    {{-- TOMBOL HAPUS --}}
-                                    <button class="btn btn-sm btn-light text-danger border-0 rounded-circle"
+                                        {{-- TOMBOL HAPUS --}}
+                                        <button class="btn btn-sm btn-light text-danger border-0 rounded-circle"
                                             onclick="deleteParent({{ $p->id }})" title="Hapus Akun">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
 
-                                    {{-- Form Hapus (Hidden) --}}
-                                    <form id="delete-parent-{{ $p->id }}" action="{{ route('guru.data.parents.destroy', $p->id) }}" method="POST" class="d-none">
-                                        @csrf @method('DELETE')
-                                    </form>
-                                </td>
-                            </tr>
+                                        {{-- Form Hapus (Hidden) --}}
+                                        <form id="delete-parent-{{ $p->id }}"
+                                            action="{{ route('guru.data.parents.destroy', $p->id) }}" method="POST"
+                                            class="d-none">
+                                            @csrf @method('DELETE')
+                                        </form>
+                                    </td>
+                                </tr>
                             @empty
-                            <tr>
-                                <td colspan="5" class="text-center py-5">
-                                    <img src="https://img.freepik.com/free-vector/no-data-concept-illustration_114360-536.jpg" alt="No Data" style="width: 150px; opacity: 0.6;">
-                                    <p class="text-muted small mt-2">Belum ada data orang tua di kelas ini.</p>
-                                </td>
-                            </tr>
+                                <tr id="emptyState">
+                                    <td colspan="5" class="text-center py-5">
+                                        <img src="https://img.freepik.com/free-vector/no-data-concept-illustration_114360-536.jpg"
+                                            alt="No Data" style="width: 150px; opacity: 0.6;">
+                                        <p class="text-muted small mt-2">Belum ada data orang tua di kelas ini.</p>
+                                    </td>
+                                </tr>
                             @endforelse
+                        </tbody>
                         </tbody>
                     </table>
                 </div>
@@ -128,7 +156,8 @@
 
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-danger">Ubah Password (Opsional)</label>
-                        <input type="password" name="password" class="form-control rounded-3" placeholder="Kosongkan jika tidak ingin mengubah password">
+                        <input type="password" name="password" class="form-control rounded-3"
+                            placeholder="Kosongkan jika tidak ingin mengubah password">
                         <div class="form-text small">Minimal 6 karakter jika diisi.</div>
                     </div>
                 </div>
@@ -142,66 +171,100 @@
     </div>
 
     @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        // Inisialisasi Modal Edit
-        const editModalElement = document.getElementById('editParentModal');
-        const editModal = new bootstrap.Modal(editModalElement);
-        const editForm = document.getElementById('editParentForm');
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script>
+            // Inisialisasi Modal Edit
+            const editModalElement = document.getElementById('editParentModal');
+            const editModal = new bootstrap.Modal(editModalElement);
+            const editForm = document.getElementById('editParentForm');
 
-        // Fungsi Buka Modal Edit & Isi Data
-        function openEditModal(data) {
-            // Set URL Update dinamis berdasarkan ID
-            let url = "{{ route('guru.data.parents.update', ':id') }}";
-            editForm.action = url.replace(':id', data.id);
+            // Fungsi Buka Modal Edit & Isi Data
+            function openEditModal(data) {
+                // Set URL Update dinamis berdasarkan ID
+                let url = "{{ route('guru.data.parents.update', ':id') }}";
+                editForm.action = url.replace(':id', data.id);
 
-            // Isi field input dengan data yang diklik
-            document.getElementById('edit_name').value = data.name;
-            document.getElementById('edit_username').value = data.username;
-            document.getElementById('edit_email').value = data.email;
+                // Isi field input dengan data yang diklik
+                document.getElementById('edit_name').value = data.name;
+                document.getElementById('edit_username').value = data.username;
+                document.getElementById('edit_email').value = data.email;
 
-            // Tampilkan Modal
-            editModal.show();
-        }
+                // Tampilkan Modal
+                editModal.show();
+            }
 
-        // Fungsi Hapus dengan Konfirmasi SweetAlert
-        function deleteParent(id) {
-            Swal.fire({
-                title: 'Hapus Akun?',
-                text: "Akun orang tua ini akan dihapus permanen! Data siswa tidak akan terhapus, hanya statusnya menjadi 'belum ditautkan'.",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Ya, Hapus!',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Submit form hapus yang hidden
-                    document.getElementById('delete-parent-' + id).submit();
+            // Fungsi Hapus dengan Konfirmasi SweetAlert
+            function deleteParent(id) {
+                Swal.fire({
+                    title: 'Hapus Akun?',
+                    text: "Akun orang tua ini akan dihapus permanen! Data siswa tidak akan terhapus, hanya statusnya menjadi 'belum ditautkan'.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Ya, Hapus!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Submit form hapus yang hidden
+                        document.getElementById('delete-parent-' + id).submit();
+                    }
+                });
+            }
+
+            // --- FITUR LIVE SEARCH DI DALAM KELAS ---
+            document.getElementById('searchInClass').addEventListener('keyup', function () {
+                let filter = this.value.toLowerCase().trim();
+                let rows = document.querySelectorAll('#parentTableBody .parent-row');
+                let emptyState = document.getElementById('emptyState');
+                let visibleCount = 0;
+
+                rows.forEach(row => {
+                    // Mengambil seluruh teks di baris tabel (Nama Ortu, Username, Email, Nama Anak)
+                    let rowText = row.textContent.toLowerCase();
+
+                    if (rowText.includes(filter)) {
+                        row.style.display = ''; // Tampilkan
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none'; // Sembunyikan
+                    }
+                });
+
+                // Logika menampilkan pesan "Tidak Ditemukan"
+                let noResultRow = document.getElementById('noResultRow');
+
+                if (visibleCount === 0 && filter !== '' && rows.length > 0) {
+                    if (!noResultRow) {
+                        let tbody = document.getElementById('parentTableBody');
+                        tbody.insertAdjacentHTML('beforeend', `<tr id="noResultRow"><td colspan="5" class="text-center py-4 text-muted fst-italic">Orang tua atau anak yang dicari tidak ditemukan.</td></tr>`);
+                    }
+                } else {
+                    if (noResultRow) {
+                        noResultRow.remove();
+                    }
                 }
             });
-        }
 
-        // Notifikasi Sukses dari Controller
-        @if(session('success'))
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil!',
-                text: "{{ session('success') }}",
-                timer: 2000,
-                showConfirmButton: false
-            });
-        @endif
+            // Notifikasi Sukses dari Controller
+            @if(session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: "{{ session('success') }}",
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            @endif
 
-        // Notifikasi Error
-        @if($errors->any())
-            Swal.fire({
-                icon: 'error',
-                title: 'Gagal!',
-                text: "Periksa kembali inputan Anda. Username/Email mungkin sudah terpakai."
-            });
-        @endif
-    </script>
+            // Notifikasi Error
+            @if($errors->any())
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: "Periksa kembali inputan Anda. Username/Email mungkin sudah terpakai."
+                });
+            @endif
+        </script>
     @endpush
 </x-app-layout>

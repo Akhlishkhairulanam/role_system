@@ -108,14 +108,20 @@ class DataMasterController extends Controller
     // ==========================================
     public function indexStudents()
     {
-        // Ambil data siswa dengan relasi yang dibutuhkan
-        // Tambahan: Ambil list Parent untuk dropdown di modal
         $parents = User::where('role', 'parent')->get();
         $classrooms = Classroom::withCount('students')->orderBy('level')->orderBy('nama_kelas')->get();
 
-        return view('admin.datamaster.students.index', compact('classrooms', 'parents'));
-    }
+        // --- TAMBAHAN BARU ---
+        // Ambil data siswa secukupnya (id, nama, nisn, dan relasi nama kelasnya) 
+        // untuk digunakan oleh Javascript Search List
+        $allStudents = Student::select('id', 'nama_lengkap', 'nisn', 'classroom_id')
+            ->with(['classroom' => function ($q) {
+                $q->select('id', 'nama_kelas');
+            }])
+            ->get();
 
+        return view('admin.datamaster.students.index', compact('classrooms', 'parents', 'allStudents'));
+    }
     public function showStudentsByClass($class_id)
     {
         // Ambil list Parent juga disini jika modal edit ada di halaman detail
@@ -123,9 +129,9 @@ class DataMasterController extends Controller
         $classroom = Classroom::findOrFail($class_id);
 
         $students = Student::where('classroom_id', $class_id)
-                    ->with(['user', 'parent']) // Load relasi Parent User ID
-                    ->orderBy('nama_lengkap')
-                    ->get();
+            ->with(['user', 'parent']) // Load relasi Parent User ID
+            ->orderBy('nama_lengkap')
+            ->get();
 
         return view('admin.datamaster.students.list', compact('classroom', 'students', 'parents'));
     }
@@ -158,7 +164,7 @@ class DataMasterController extends Controller
             Student::create([
                 'user_id'       => $user->id,
                 'classroom_id'  => $request->classroom_id,
-                'parent_user_id'=> $request->parent_user_id, // <--- INTEGRASI ORTU
+                'parent_user_id' => $request->parent_user_id, // <--- INTEGRASI ORTU
 
                 // Data Pribadi
                 'nama_lengkap'  => $request->nama_lengkap,
@@ -200,7 +206,7 @@ class DataMasterController extends Controller
 
         $request->validate([
             'nama_lengkap' => 'required',
-            'nisn'         => 'required|unique:students,nisn,'.$id,
+            'nisn'         => 'required|unique:students,nisn,' . $id,
         ]);
 
         DB::transaction(function () use ($request, $student) {
@@ -210,7 +216,7 @@ class DataMasterController extends Controller
             $student->update($request->except(['_token', '_method', 'password', 'reset_password']));
 
             // 2. Sinkronisasi User Login
-            if($student->user) {
+            if ($student->user) {
                 $userData = [
                     'name'     => $request->nama_lengkap,
                     'username' => $request->nisn, // Kalau NISN berubah, login juga berubah
@@ -234,7 +240,7 @@ class DataMasterController extends Controller
         $student = Student::findOrFail($id);
 
         // Hapus Usernya juga biar bersih
-        if($student->user_id) {
+        if ($student->user_id) {
             User::destroy($student->user_id);
         }
 
@@ -253,10 +259,10 @@ class DataMasterController extends Controller
         // 1. Fitur Search
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('nama_lengkap', 'like', "%{$search}%")
-                  ->orWhere('nip', 'like', "%{$search}%")
-                  ->orWhere('nik', 'like', "%{$search}%");
+                    ->orWhere('nip', 'like', "%{$search}%")
+                    ->orWhere('nik', 'like', "%{$search}%");
             });
         }
 
@@ -411,7 +417,7 @@ class DataMasterController extends Controller
                 Classroom::where('wali_kelas_id', $teacher->id)->update(['wali_kelas_id' => null]);
 
                 // 2. Hapus User
-                if($teacher->user_id) {
+                if ($teacher->user_id) {
                     User::destroy($teacher->user_id);
                 }
 
@@ -420,7 +426,6 @@ class DataMasterController extends Controller
             });
 
             return back()->with('success', 'Guru dan Akun Login berhasil dihapus!');
-
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal menghapus guru. Pastikan tidak ada data terkait.');
         }
@@ -432,9 +437,9 @@ class DataMasterController extends Controller
     public function indexAllocations()
     {
         $classrooms = Classroom::with(['teacher_allocations.teacher', 'teacher_allocations.subject'])
-                                ->orderBy('level')
-                                ->orderBy('nama_kelas')
-                                ->get();
+            ->orderBy('level')
+            ->orderBy('nama_kelas')
+            ->get();
 
         $teachers = Teacher::orderBy('nama_lengkap')->get();
         $subjects = Subject::orderBy('nama_mapel')->get();
@@ -452,11 +457,11 @@ class DataMasterController extends Controller
 
         // Cek Duplikat
         $exists = TeacherAllocation::where('teacher_id', $request->teacher_id)
-                    ->where('classroom_id', $request->classroom_id)
-                    ->where('subject_id', $request->subject_id)
-                    ->exists();
+            ->where('classroom_id', $request->classroom_id)
+            ->where('subject_id', $request->subject_id)
+            ->exists();
 
-        if($exists) {
+        if ($exists) {
             return back()->with('error', 'Guru tersebut sudah mengajar mapel ini di kelas ini!');
         }
 
@@ -484,9 +489,9 @@ class DataMasterController extends Controller
     {
         $classroom = Classroom::findOrFail($class_id);
 
-        $schedules = Schedule::whereHas('teacher_allocation', function($q) use ($class_id) {
-                $q->where('classroom_id', $class_id);
-            })
+        $schedules = Schedule::whereHas('teacher_allocation', function ($q) use ($class_id) {
+            $q->where('classroom_id', $class_id);
+        })
             ->with(['teacher_allocation.subject', 'teacher_allocation.teacher'])
             ->orderBy('start_time', 'asc')
             ->get();
@@ -505,13 +510,13 @@ class DataMasterController extends Controller
         $student = Student::with(['classroom.waliKelas', 'user'])->findOrFail($id);
 
         $allocations = TeacherAllocation::with(['subject', 'teacher.user'])
-                        ->where('classroom_id', $student->classroom_id)
-                        ->get();
+            ->where('classroom_id', $student->classroom_id)
+            ->get();
 
         $rawGrades = Grade::where('student_id', $student->id)->get();
 
         $grades = [];
-        foreach($rawGrades as $g) {
+        foreach ($rawGrades as $g) {
             $type = strtolower($g->type);
             $grades[$g->teacher_allocation_id][$type] = $g->score;
         }
@@ -555,18 +560,28 @@ class DataMasterController extends Controller
     // HALAMAN 1: PILIH KELAS
     public function indexParents()
     {
-        // Kita ambil data kelas, hitung jumlah siswa yg punya ortu di kelas itu (opsional)
+        // Kita ambil data kelas, hitung jumlah siswa yg punya ortu di kelas itu
         $classrooms = Classroom::orderBy('level')
-                        ->orderBy('nama_kelas')
-                        ->withCount('students')
-                        ->get();
+            ->orderBy('nama_kelas')
+            ->withCount('students')
+            ->get();
 
-        // Hitung ortu yang belum terhubung ke siswa manapun (Opsional, buat info aja)
+        // Hitung ortu yang belum terhubung ke siswa manapun
         $unlinked_parents = User::where('role', 'parent')
-                                ->doesntHave('students')
-                                ->count();
+            ->doesntHave('students')
+            ->count();
 
-        return view('admin.datamaster.parents.index', compact('classrooms', 'unlinked_parents'));
+        // --- TAMBAHAN BARU ---
+        // Ambil semua data ortu beserta anak-anaknya untuk fitur Live Search
+        $allParents = User::where('role', 'parent')
+            ->with(['students' => function ($q) {
+                // Ambil data anak dan sertakan relasi kelasnya
+                $q->select('id', 'parent_user_id', 'nama_lengkap', 'classroom_id', 'nisn')
+                    ->with('classroom:id,nama_kelas');
+            }])
+            ->get();
+
+        return view('admin.datamaster.parents.index', compact('classrooms', 'unlinked_parents', 'allParents'));
     }
 
     // HALAMAN 2: LIST ORANG TUA PER KELAS
@@ -576,14 +591,14 @@ class DataMasterController extends Controller
 
         // Ambil User (Parent) yang punya anak (Student) di kelas ini
         $parents = User::where('role', 'parent')
-                    ->whereHas('students', function($q) use ($class_id) {
-                        $q->where('classroom_id', $class_id);
-                    })
-                    ->with(['students' => function($q) {
-                        $q->with('classroom'); // Load data kelas anak
-                    }])
-                    ->orderBy('name', 'asc')
-                    ->get();
+            ->whereHas('students', function ($q) use ($class_id) {
+                $q->where('classroom_id', $class_id);
+            })
+            ->with(['students' => function ($q) {
+                $q->with('classroom'); // Load data kelas anak
+            }])
+            ->orderBy('name', 'asc')
+            ->get();
 
         return view('admin.datamaster.parents.list', compact('classroom', 'parents'));
     }
